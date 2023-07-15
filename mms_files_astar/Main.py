@@ -206,6 +206,7 @@ def set_degmode(desired, cur, score):
     return desired, (score + 2)
 
 
+
 def BFS(maze_array, start, goal, visited):
     paths = []
     neighbors = [(0, 1), (0, -1), (1, 0), (-1, 0)]
