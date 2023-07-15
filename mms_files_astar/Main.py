@@ -422,8 +422,8 @@ def update_viable(
 ):  
     '''viable = explored + cells which have been visited on all 4 neighbors, but not visited themselves'''
     viable = [row[:] for row in visited]  # proper 2D array copying
-    for i, k in enumerate(viable):
-        for j, z in enumerate(viable):
+    for i, _ in enumerate(viable):
+        for j, _ in enumerate(viable):
             l = False
             r = False
             u = False
@@ -593,8 +593,8 @@ def main():
                 )
                 visited[current_x][current_y] = True
                 viable = update_viable(visited)
-                for i,k in enumerate(visited):
-                    for j,z in enumerate(visited):
+                for i,_ in enumerate(visited):
+                    for j,_ in enumerate(visited):
                         if visited[i][j]:
                             API.setColor(i, j, "R")
                         elif viable[i][j]:
