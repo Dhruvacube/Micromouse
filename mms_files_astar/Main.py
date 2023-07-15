@@ -205,6 +205,7 @@ def set_degmode(desired, cur, score):
     API.turnRight()
     return desired, (score + 2)
 
+
 def BFS(maze_array, start, goal, visited):
     paths = []
     neighbors = [(0, 1), (0, -1), (1, 0), (-1, 0)]
@@ -415,8 +416,8 @@ def path_score(path):
 
 def update_viable(
     visited,
-):  
-    '''viable = explored + cells which have been visited on all 4 neighbors, but not visited themselves'''
+):
+    """viable = explored + cells which have been visited on all 4 neighbors, but not visited themselves"""
     viable = [row[:] for row in visited]  # proper 2D array copying
     for i, k in enumerate(viable):
         for j, z in enumerate(viable):
@@ -589,8 +590,8 @@ def main():
                 )
                 visited[current_x][current_y] = True
                 viable = update_viable(visited)
-                for i,k in enumerate(visited):
-                    for j,z in enumerate(visited):
+                for i, k in enumerate(visited):
+                    for j, z in enumerate(visited):
                         if visited[i][j]:
                             API.setColor(i, j, "R")
                         elif viable[i][j]:
