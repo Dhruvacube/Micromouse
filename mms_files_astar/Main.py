@@ -21,16 +21,14 @@ def manhattan_distance_explore(a, b, visited):
     """allows for path with visited nodes if neccessary, but strongly prefers unvisited nodes"""
     if visited[b[0]][b[1]]:
         return (abs(a[0] - b[0]) + abs(a[1] - b[1])) ** 2
-    else:
-        return abs(a[0] - b[0]) + abs(a[1] - b[1])
+    return abs(a[0] - b[0]) + abs(a[1] - b[1])
 
 
 def euclidian_distance_explore(a, b, visited):
     """allows for path with visited nodes if neccessary, but strongly prefers unvisited nodes"""
     if visited[b[0]][b[1]]:
         return (b[0] - a[0]) ** 2 + (b[1] - a[1]) ** 2
-    else:
-        return sqrt((b[0] - a[0]) ** 2 + (b[1] - a[1]) ** 2)
+    return sqrt((b[0] - a[0]) ** 2 + (b[1] - a[1]) ** 2)
 
 
 def aStar(maze_array, current_x, current_y, goal_x, goal_y, h_func, visited):
@@ -103,10 +101,9 @@ def aStar(maze_array, current_x, current_y, goal_x, goal_y, h_func, visited):
 def concat_bin(a, b):
     if a == MAZE_HEIGHT:
         return b
-    elif b == MAZE_WIDTH:
+    if b == MAZE_WIDTH:
         return a
-    else:
-        return a | b
+    return a | b
 
 
 def mapping(
@@ -201,13 +198,12 @@ def set_degmode(desired, cur, score):
     if desired == (cur + 1) % 4:  # modulo to loop back to 0 after 3
         API.turnRight()
         return desired, (score + 1)
-    elif desired == (cur - 1) % 4:
+    if desired == (cur - 1) % 4:
         API.turnLeft()
         return desired, (score + 1)
-    else:
-        API.turnRight()
-        API.turnRight()
-        return desired, (score + 2)
+    API.turnRight()
+    API.turnRight()
+    return desired, (score + 2)
 
 def BFS(maze_array, start, goal, visited):
     paths = []
