@@ -28,7 +28,7 @@ async def mem_manage():         # Necessary for long term stability
     while True:
         await asyncio.sleep_ms(100)
         gc.collect()
-        gc.threshold(gc.mem_free() // 4 + gc.mem_alloc())
+        gc.threshold(gc.mem_free() // 4 + gc.mem_alloc()) # pyright: ignore[reportGeneralTypeIssues]
 asyncio.create_task(mem_manage())
 asyncio.run(fuse.start())
 

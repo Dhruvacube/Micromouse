@@ -24,7 +24,7 @@ class N20Motor:
         self.in4.freq(self.FREQUENCY)
     
     def _speed(self,x, in_min=MIN_SPEED, in_max=MAX_SPEED, out_min=MIN_DUTY_CYCLE, out_max=MAX_DUTY_CYCLE):
-        return int((x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min)
+        return int((x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min) # pyright: ignore[reportGeneralTypeIssues]
     
     def bakward(self, speed=MAX_SPEED):
         speed=self._speed(speed, MIN_SPEED, MAX_SPEED, MIN_DUTY_CYCLE, MAX_DUTY_CYCLE)
@@ -70,5 +70,27 @@ class N20Motor:
         self.in3.deinit()
         self.in4.deinit()
 
-class N20MotorEncoder:
-    pass
+class N20Encoder:
+    ENCODER_CMS = lambda x: (x/28)*0.43 # as 28 CPR and 0.43cm is the wheel diameter https://robokits.co.in/motors/n20-metal-gear-micro-motors/n20-metal-gear-encoder-motor/ga12-n20-12v-1000-rpm-all-metal-gear-micro-dc-encoder-motor-with-precious-metal-brush
+    ENCODER_RAW = 0
+    ENCODER_CMS = 0
+    LAST_ENCODED = 0
+    
+    def __init__(self, pin1, pin2):
+        self.pin1 = Pin(pin1, Pin.IN, Pin.PULL_UP)
+        self.pin2 = Pin(pin2, Pin.IN, Pin.PULL_UP)
+        self.pin1.irq(trigger=Pin.IRQ_RISING | Pin.IRQ_FALLING, handler=self.updateEncoder)
+        self.pin2.irq(trigger=Pin.IRQ_RISING | Pin.IRQ_FALLING, handler=self.updateEncoder)
+
+    def updateEncoder(self):
+        MSB = self.pin1.value() #MSB = most significant bit
+        LSB = self.pin2.value() #LSB = least significant bit
+        encoded = (MSB << 1) | LSB; #converting the 2 pin value to single number
+        sum  = (self.LAST_ENCODED << 2) | encoded; #adding it to the previous encoded value
+        
+        if sum == 0b1101 or sum == 0b0100 or sum == 0b0010 or sum == 0b1011:
+            self.ENCODER_RAW-=1
+        if sum == 0b1110 or sum == 0b0111 or sum == 0b0001 or sum == 0b1000:
+            self.ENCODER_RAW+=1
+        
+        self.LAST_ENCODED = encoded #store this value for next time
