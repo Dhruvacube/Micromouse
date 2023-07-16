@@ -34,7 +34,7 @@ asyncio.create_task(mem_manage())
 asyncio.run(fuse.start())
 
 def getIMUData():
-    _IMUData = namedtuple("IMUData", "HEADING PICHT ROLL")
+    _IMUData = namedtuple("IMUData", "HEADING PITCH ROLL")
     return _IMUData(fuse.heading, fuse.pitch, fuse.roll)
 
 en1pl = Pin(13, Pin.IN, Pin.PULL_UP)
