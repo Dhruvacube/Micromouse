@@ -10,6 +10,7 @@ from machine import Pin, I2C
 
 from libraries import fusion_async as fusion  # Using async version
 from libraries import imu as _imu
+from libraries import n20drv8833 as n20
 
 imu=_imu.MPU6050(I2C(0, sda=Pin(21), scl=Pin(22)))
 
@@ -35,3 +36,15 @@ asyncio.run(fuse.start())
 def getIMUData():
     _IMUData = namedtuple("IMUData", "HEADING PICHT ROLL")
     return _IMUData(fuse.heading, fuse.pitch, fuse.roll)
+
+en1pl = Pin(13, Pin.IN, Pin.PULL_UP)
+en1pl.on()
+en2pl = Pin(12, Pin.IN, Pin.PULL_UP)
+en2pl.on()
+encoder1 = n20.Encoder(en1pl, en2pl)
+
+en1pr = Pin(14, Pin.IN, Pin.PULL_UP)
+en1pr.on()
+en2pr = Pin(27, Pin.IN, Pin.PULL_UP)
+en2pr.on()
+encoder1 = n20.Encoder(en1pr, en2pr)

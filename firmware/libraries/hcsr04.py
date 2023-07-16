@@ -61,7 +61,7 @@ class HCSR04:
         # the sound speed on air (343.2 m/s), that It's equivalent to
         # 0.34320 mm/us that is 1mm each 2.91us
         # pulse_time // 2 // 2.91 -> pulse_time // 5.82 -> pulse_time * 100 // 582
-        self.mm = int(pulse_time * 100 // 582)
+        self.mm = pulse_time * 100 // 582
         return self.mm
 
     async def distance_cm(self):
@@ -75,5 +75,5 @@ class HCSR04:
         # (the pulse walk the distance twice) and by 29.1 becasue
         # the sound speed on air (343.2 m/s), that It's equivalent to
         # 0.034320 cm/us that is 1cm each 29.1us
-        self.cms = int((pulse_time / 2) / 29) #rounded it off to 29 as uncessary doing the 0.1 floating operation would take the ram in microcontroller
+        self.cms = (pulse_time / 2) / 29.1
         return self.cms

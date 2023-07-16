@@ -1,5 +1,7 @@
-from machine import Pin, PWM
-import time
+import asyncio
+from math import pi
+
+from machine import PWM, Pin
 from micropython import const
 
 MAX_DUTY_CYCLE = const((2**16)-1)
@@ -61,36 +63,98 @@ class N20Motor:
         self.in3.duty_u16(MIN_DUTY_CYCLE)
         self.in4.duty_u16(MIN_DUTY_CYCLE)
     
-    def deinit(self):
+    async def deinit(self):
         """deinit PWM Pins"""
         self.stop()
-        time.sleep(0.1)
+        await asyncio.sleep(0.1)
         self.in1.deinit()
         self.in2.deinit()
         self.in3.deinit()
         self.in4.deinit()
 
-class N20Encoder:
-    ENCODER_CMS = lambda x: (x/28)*0.43 # as 28 CPR and 0.43cm is the wheel diameter https://robokits.co.in/motors/n20-metal-gear-micro-motors/n20-metal-gear-encoder-motor/ga12-n20-12v-1000-rpm-all-metal-gear-micro-dc-encoder-motor-with-precious-metal-brush
-    ENCODER_RAW = 0
-    ENCODER_CMS = 0
-    LAST_ENCODED = 0
-    
-    def __init__(self, pin1, pin2):
-        self.pin1 = Pin(pin1, Pin.IN, Pin.PULL_UP)
-        self.pin2 = Pin(pin2, Pin.IN, Pin.PULL_UP)
-        self.pin1.irq(trigger=Pin.IRQ_RISING | Pin.IRQ_FALLING, handler=self.updateEncoder)
-        self.pin2.irq(trigger=Pin.IRQ_RISING | Pin.IRQ_FALLING, handler=self.updateEncoder)
+# https://github.com/peterhinch/micropython-async/blob/master/v3/primitives/encoder.py
+# encoder.py Asynchronous driver for incremental quadrature encoder.
 
-    def updateEncoder(self):
-        MSB = self.pin1.value() #MSB = most significant bit
-        LSB = self.pin2.value() #LSB = least significant bit
-        encoded = (MSB << 1) | LSB; #converting the 2 pin value to single number
-        sum  = (self.LAST_ENCODED << 2) | encoded; #adding it to the previous encoded value
-        
-        if sum == 0b1101 or sum == 0b0100 or sum == 0b0010 or sum == 0b1011:
-            self.ENCODER_RAW-=1
-        if sum == 0b1110 or sum == 0b0111 or sum == 0b0001 or sum == 0b1000:
-            self.ENCODER_RAW+=1
-        
-        self.LAST_ENCODED = encoded #store this value for next time
+# Copyright (c) 2021-2022 Peter Hinch
+# Released under the MIT License (MIT) - see LICENSE file
+
+# Thanks are due to @ilium007 for identifying the issue of tracking detents,
+# https://github.com/peterhinch/micropython-async/issues/82.
+# Also to Mike Teachman (@miketeachman) for design discussions and testing
+# against a state table design
+# https://github.com/miketeachman/micropython-rotary/blob/master/rotary.py
+
+#motor data: https://robokits.co.in/motors/n20-metal-gear-micro-motors/n20-metal-gear-encoder-motor/ga12-n20-12v-1000-rpm-all-metal-gear-micro-dc-encoder-motor-with-precious-metal-brush
+WHEEL_DIA = const(0.43) #in cms
+CPR = const(28)
+GEAR_RATIO = const(30)
+
+class Encoder:
+    
+    rpm2cms = lambda self, wheel_diameter=WHEEL_DIA: self.value() * wheel_diameter * pi
+
+    def __init__(self, pin_x, pin_y, v=0, div=CPR*GEAR_RATIO, vmin=None, vmax=None, # pyright: ignore[reportGeneralTypeIssues]
+                 mod=None, callback=lambda a, b : None, args=(), delay=100):
+        self._pin_x = pin_x
+        self._pin_y = pin_y
+        self._x = pin_x()
+        self._y = pin_y()
+        self._v = v * div  # Initialise hardware value
+        self._cv = v  # Current (divided) value
+        self.delay = delay  # Pause (ms) for motion to stop/limit callback frequency
+
+        if ((vmin is not None) and v < vmin) or ((vmax is not None) and v > vmax):
+            raise ValueError('Incompatible args: must have vmin <= v <= vmax')
+        self._tsf = asyncio.ThreadSafeFlag() # pyright: ignore[reportGeneralTypeIssues]
+        trig = Pin.IRQ_RISING | Pin.IRQ_FALLING
+        try:
+            xirq = pin_x.irq(trigger=trig, handler=self._x_cb, hard=True)
+            yirq = pin_y.irq(trigger=trig, handler=self._y_cb, hard=True)
+        except TypeError:  # hard arg is unsupported on some hosts
+            xirq = pin_x.irq(trigger=trig, handler=self._x_cb)
+            yirq = pin_y.irq(trigger=trig, handler=self._y_cb)
+        asyncio.create_task(self._run(vmin, vmax, div, mod, callback, args))
+
+    # Hardware IRQ's. Duration 36μs on Pyboard 1 ~50μs on ESP32.
+    # IRQ latency: 2nd edge may have occured by the time ISR runs, in
+    # which case there is no movement.
+    def _x_cb(self, pin_x):
+        if (x := pin_x()) != self._x:
+            self._x = x
+            self._v += 1 if x ^ self._pin_y() else -1
+            self._tsf.set()
+
+    def _y_cb(self, pin_y):
+        if (y := pin_y()) != self._y:
+            self._y = y
+            self._v -= 1 if y ^ self._pin_x() else -1
+            self._tsf.set()
+
+    async def _run(self, vmin, vmax, div, mod, cb, args):
+        pv = self._v  # Prior hardware value
+        pcv = self._cv  # Prior divided value passed to callback
+        lcv = pcv  # Current value after limits applied
+        plcv = pcv  # Previous value after limits applied
+        delay = self.delay
+        while True:
+            await self._tsf.wait()
+            await asyncio.sleep_ms(delay)  # Wait for motion to stop. # pyright: ignore[reportGeneralTypeIssues]
+            hv = self._v  # Sample hardware (atomic read).
+            if hv == pv:  # A change happened but was negated before
+                continue  # this got scheduled. Nothing to do.
+            pv = hv
+            cv = round(hv / div)  # cv is divided value.
+            if not (dv := cv - pcv):  # dv is change in divided value.
+                continue  # No change
+            lcv += dv  # lcv: divided value with limits/mod applied
+            lcv = lcv if vmax is None else min(vmax, lcv)
+            lcv = lcv if vmin is None else max(vmin, lcv)
+            lcv = lcv if mod is None else lcv % mod
+            self._cv = lcv  # update ._cv for .value() before CB.
+            if lcv != plcv:
+                cb(lcv, lcv - plcv, *args)  # Run user CB in uasyncio context
+            pcv = cv
+            plcv = lcv
+
+    def value(self):
+        return self._cv
