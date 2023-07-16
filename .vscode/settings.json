@@ -1,4 +1,16 @@
 {
-    "python.linting.enabled": false,
-    "python.linting.pylintEnabled": false,
+    "python.languageServer": "Pylance",
+    "python.analysis.typeCheckingMode": "basic",
+    "python.analysis.diagnosticSeverityOverrides": {
+        "reportUnusedImport": "information",
+        "reportMissingModuleSource": "none",
+    },
+    "python.analysis.typeshedPaths": [
+        ".venv/Lib/site-packages",
+        "firmware/.mypy_cache/3.8",
+        "firmware/repos",
+        "firmware/stubs"
+    ],
+    "python.linting.enabled": true,
+    "python.linting.pylintEnabled": true,
 }

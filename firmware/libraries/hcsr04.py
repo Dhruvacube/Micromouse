@@ -23,11 +23,11 @@ class HCSR04:
         """
         self.echo_timeout_us = echo_timeout_us
         # Init trigger pin (out)
-        self.trigger = Pin(trigger_pin, mode=Pin.OUT, pull=None)
+        self.trigger = Pin(trigger_pin, mode=Pin.OUT)
         self.trigger.value(0)
 
         # Init echo pin (in)
-        self.echo = Pin(echo_pin, mode=Pin.IN, pull=None)
+        self.echo = Pin(echo_pin, mode=Pin.IN)
 
     def _send_pulse_and_wait(self):
         """
