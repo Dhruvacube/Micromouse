@@ -1,5 +1,5 @@
-from machine import Pin, time_pulse_us # pyright: ignore[reportMissingModuleSource]
-from asyncio import sleep_ms, create_task # pyright: ignore[reportGeneralTypeIssues]
+from machine import Pin, time_pulse_us  # pyright: ignore[reportMissingModuleSource]
+from asyncio import sleep_ms, create_task  # pyright: ignore[reportGeneralTypeIssues]
 
 
 class HCSR04:
@@ -8,8 +8,9 @@ class HCSR04:
     The sensor range is between 2cm and 4m.
     The timeouts received listening to echo pin are converted to OSError('Out of range')
     """
-    cms=0
-    mm=0
+
+    cms = 0
+    mm = 0
 
     # echo_timeout_us is based in chip range limit (400cm)
     def __init__(self, trigger_pin, echo_pin, echo_timeout_us=500 * 2 * 30):
@@ -26,7 +27,7 @@ class HCSR04:
 
         # Init echo pin (in)
         self.echo = Pin(echo_pin, mode=Pin.IN)
-    
+
     def start(self):
         create_task(self.distance_cm())
         create_task(self.distance_mm())
@@ -37,10 +38,10 @@ class HCSR04:
         We use the method `machine.time_pulse_us()` to get the microseconds until the echo is received.
         """
         self.trigger.value(0)  # Stabilize the sensor
-        await sleep_ms(5/1000)
+        await sleep_ms(5 / 1000)
         self.trigger.value(1)
         # Send a 10us pulse.
-        await sleep_ms(10/1000)
+        await sleep_ms(10 / 1000)
         self.trigger.value(0)
         try:
             pulse_time = time_pulse_us(self.echo, 1, self.echo_timeout_us)
