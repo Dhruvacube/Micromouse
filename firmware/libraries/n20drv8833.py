@@ -3,6 +3,7 @@ from math import pi
 
 from machine import PWM, Pin
 from micropython import const
+from collections import namedtuple
 
 MAX_DUTY_CYCLE = const((2**16)-1)
 MIN_DUTY_CYCLE = const(0)
@@ -11,15 +12,11 @@ MAX_SPEED = const(100)
 
 class N20Motor:
     FREQUENCY=20000
-    def __init__(self, in1, in2, in3, in4, enp1=None, enp2=None, enp3=None, enp4=None):
+    def __init__(self, in1, in2, in3, in4):
         self.in1 = PWM(Pin(in1, Pin.OUT))
         self.in2 = PWM(Pin(in2, Pin.OUT))
         self.in3 = PWM(Pin(in3, Pin.OUT))
         self.in4 = PWM(Pin(in4, Pin.OUT))
-        self.enp1 = Pin(enp1, Pin.IN, Pin.PULL_UP) if enp1 is not None else None
-        self.enp2 = Pin(enp2, Pin.IN, Pin.PULL_UP) if enp2 is not None else None
-        self.enp3 = Pin(enp3, Pin.IN, Pin.PULL_UP) if enp3 is not None else None
-        self.enp4 = Pin(enp4, Pin.IN, Pin.PULL_UP) if enp4 is not None else None
         self.in1.freq(self.FREQUENCY)
         self.in2.freq(self.FREQUENCY)
         self.in3.freq(self.FREQUENCY)
@@ -75,6 +72,8 @@ class N20Motor:
 # https://github.com/peterhinch/micropython-async/blob/master/v3/primitives/encoder.py
 # encoder.py Asynchronous driver for incremental quadrature encoder.
 
+# modified by Dhruva Shaw
+
 # Copyright (c) 2021-2022 Peter Hinch
 # Released under the MIT License (MIT) - see LICENSE file
 
@@ -91,9 +90,10 @@ GEAR_RATIO = const(30)
 
 class Encoder:
     
-    rpm2cms = lambda self, wheel_diameter=WHEEL_DIA: self.value() * wheel_diameter * pi
+    ppr2cms = lambda self, wheel_diameter=WHEEL_DIA: self.rev() * wheel_diameter * pi
+    ppr2deg = lambda self: self.value()/(360/CPR*GEAR_RATIO) # pyright: ignore[reportGeneralTypeIssues]
 
-    def __init__(self, pin_x, pin_y, v=0, div=CPR*GEAR_RATIO, vmin=None, vmax=None, # pyright: ignore[reportGeneralTypeIssues]
+    def __init__(self, pin_x, pin_y, v=0, div=1, vmin=None, vmax=None, # pyright: ignore[reportGeneralTypeIssues]
                  mod=None, callback=lambda a, b : None, args=(), delay=100):
         self._pin_x = pin_x
         self._pin_y = pin_y
@@ -108,11 +108,11 @@ class Encoder:
         self._tsf = asyncio.ThreadSafeFlag() # pyright: ignore[reportGeneralTypeIssues]
         trig = Pin.IRQ_RISING | Pin.IRQ_FALLING
         try:
-            xirq = pin_x.irq(trigger=trig, handler=self._x_cb, hard=True)
-            yirq = pin_y.irq(trigger=trig, handler=self._y_cb, hard=True)
+            pin_x.irq(trigger=trig, handler=self._x_cb, hard=True)
+            pin_y.irq(trigger=trig, handler=self._y_cb, hard=True)
         except TypeError:  # hard arg is unsupported on some hosts
-            xirq = pin_x.irq(trigger=trig, handler=self._x_cb)
-            yirq = pin_y.irq(trigger=trig, handler=self._y_cb)
+            pin_x.irq(trigger=trig, handler=self._x_cb)
+            pin_y.irq(trigger=trig, handler=self._y_cb)
         asyncio.create_task(self._run(vmin, vmax, div, mod, callback, args))
 
     # Hardware IRQ's. Duration 36μs on Pyboard 1 ~50μs on ESP32.
@@ -156,5 +156,82 @@ class Encoder:
             pcv = cv
             plcv = lcv
 
+    def rev(self):
+        '''returns the no of revolution done'''
+        return self._cv/CPR*GEAR_RATIO # pyright: ignore[reportGeneralTypeIssues]
+    
     def value(self):
+        '''returns the encoder pulses'''
         return self._cv
+    
+    def resetAll(self):
+        '''resets the encoder pulses'''
+        self._cv = 0
+        self._v = 0
+
+
+_dir = namedtuple('dir', 'left right forward backward')
+dir = _dir(0, 1, 2, 3)
+
+class PIDControl:
+    P=0
+    I=0
+    D=0
+    
+    Kp = 0.05
+    Ki = 0.00001
+    Kd = 0.8
+    lastError = 0
+    
+    def __init__(self, driverClass, encoderClass1, encoderClass2, *args, **kwargs):
+        self.driver = driverClass
+        self.encoder1 = encoderClass1
+        self.encoder2 = encoderClass2
+    
+    def gotoDegree(self, degree):
+        '''the sign of the degree will determine the direction of the motor'''
+        self.encoder1.resetAll()
+        self.encoder2.resetAll()
+        self.lastError = 0
+        direction = dir.right if degree > 0 else dir.left
+        while True:
+            error = degree - (self.encoder1.ppr2deg() + self.encoder2.ppr2deg())
+            self.P = error
+            self.I = error + self.I
+            self.D = error - self.lastError
+            self.lastError = error; 
+
+            motorSpeedChange = self.P*self.Kp + self.I*self.Ki + self.D*self.Kd
+            speed = 100 + motorSpeedChange if direction == dir.right else 100 - motorSpeedChange
+            if speed > 125:
+                speed = 125
+            if speed < -125:
+                speed = -125
+            if direction == dir.right:
+                self.driver.right(abs(speed))
+            if direction == dir.left:
+                self.driver.left(abs(speed))
+    
+    def gotoCms(self, cms):
+        '''the sign of the cms will determine the direction of the motor'''
+        self.encoder1.resetAll()
+        self.encoder2.resetAll()
+        self.lastError = 0
+        direction = dir.right if cms > 0 else dir.left
+        while True:
+            error = cms - (self.encoder1.ppr2deg() + self.encoder2.ppr2deg())
+            self.P = error
+            self.I = error + self.I
+            self.D = error - self.lastError
+            self.lastError = error; 
+
+            motorSpeedChange = self.P*self.Kp + self.I*self.Ki + self.D*self.Kd
+            speed = 100 + motorSpeedChange if direction == dir.forward else 100 - motorSpeedChange
+            if speed > 125:
+                speed = 125
+            if speed < -125:
+                speed = -125
+            if direction == dir.right:
+                self.driver.right(abs(speed))
+            if direction == dir.left:
+                self.driver.left(abs(speed))

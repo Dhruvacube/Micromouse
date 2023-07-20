@@ -11,6 +11,6 @@
         "firmware/repos",
         "firmware/stubs"
     ],
-    "python.linting.enabled": true,
-    "python.linting.pylintEnabled": true,
+    "python.linting.enabled": false,
+    "python.linting.pylintEnabled": false,
 }

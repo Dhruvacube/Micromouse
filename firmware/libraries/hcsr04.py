@@ -77,3 +77,13 @@ class HCSR04:
         # 0.034320 cm/us that is 1cm each 29.1us
         self.cms = (pulse_time / 2) / 29.1
         return self.cms
+    
+    def detectWallsCms(self, cms):
+        if cms <= self.cms:
+            return True
+        return False
+    
+    def detectWallsMm(self, mm):
+        if mm <= self.mm:
+            return True
+        return False

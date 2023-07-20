@@ -1,0 +1,6 @@
+{
+    "mazeWidth": 16,
+    "mazeHeight": 16,
+    "cellSize": 18, //its a quare
+    "endCoordinates": [8,8]
+}
