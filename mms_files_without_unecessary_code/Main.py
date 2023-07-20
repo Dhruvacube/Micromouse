@@ -10,6 +10,7 @@ MAZE_HEIGHT = API.mazeHeight()
 DirectionsClass = namedtuple("Directions", "UP RIGHT DOWN LEFT")
 Direction = DirectionsClass(0, 1, 2, 3)
 
+
 def manhattan_distance_explore(a, b, visited):
     """allows for path with visited nodes if neccessary, but strongly prefers unvisited nodes"""
     if visited[b[0]][b[1]]:
@@ -338,7 +339,6 @@ def move_to(current_x, current_y, degmode, path, maze_array, visited, score):
 
 
 def path_score(path):
-
     cur_x = path[0][0]
     last_x = path[0][0]
     last_x2 = -1
