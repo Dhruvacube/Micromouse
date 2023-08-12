@@ -39,8 +39,8 @@ def aStar(maze_array, current_x, current_y, goal_x, goal_y, h_func, visited):
     """A* algorithm for pathfinding
     modified from code by Christian Careaga (MIT license) modifications: accessibility checking/removed numpy dependency/adapted for square grid/added support for any heuristic
     """
-    for i in range(MAZE_HEIGHT): # type: ignore
-        for j in range(MAZE_WIDTH): # type: ignore
+    for i in range(MAZE_HEIGHT):  # type: ignore
+        for j in range(MAZE_WIDTH):  # type: ignore
             API.clearText(i, j)
     neighbors = [(0, 1), (0, -1), (1, 0), (-1, 0)]
     start = (current_x, current_y)
@@ -185,9 +185,21 @@ def mapping(
 
     if (
         maze_array[x][y] == 1
-        or maze_array[x][y] in (int(MAZE_HEIGHT / 8), int(MAZE_WIDTH / 8)) # pyright: ignore[reportOptionalOperand]
-        or maze_array[x][y] in (int(MAZE_HEIGHT / 4), int(MAZE_WIDTH / 4)) # pyright: ignore[reportOptionalOperand]
-        or maze_array[x][y] in (int(MAZE_HEIGHT / 2), int(MAZE_WIDTH / 2)) # pyright: ignore[reportOptionalOperand]
+        or maze_array[x][y]
+        in (
+            int(MAZE_HEIGHT / 8),
+            int(MAZE_WIDTH / 8),
+        )  # pyright: ignore[reportOptionalOperand]
+        or maze_array[x][y]
+        in (
+            int(MAZE_HEIGHT / 4),
+            int(MAZE_WIDTH / 4),
+        )  # pyright: ignore[reportOptionalOperand]
+        or maze_array[x][y]
+        in (
+            int(MAZE_HEIGHT / 2),
+            int(MAZE_WIDTH / 2),
+        )  # pyright: ignore[reportOptionalOperand]
         or maze_array[x][y] == MAZE_HEIGHT
         or MAZE_WIDTH
     ):
@@ -460,8 +472,8 @@ def update_viable(
 
 def main():
     log("Running")
-    maze_array = [[0 for j in range(MAZE_HEIGHT)] for i in range(MAZE_WIDTH)] # type: ignore
-    visited = [[False for j in range(MAZE_HEIGHT)] for i in range(MAZE_WIDTH)] # type: ignore
+    maze_array = [[0 for j in range(MAZE_HEIGHT)] for i in range(MAZE_WIDTH)]  # type: ignore
+    visited = [[False for j in range(MAZE_HEIGHT)] for i in range(MAZE_WIDTH)]  # type: ignore
     viable = [row[:] for row in visited]
     intersections = []
     FINISH_X = 8
@@ -518,7 +530,9 @@ def main():
         elif state is State.goal_to_start:
             goto_x = START_X
             goto_y = START_Y
-        while current_x != goto_x or current_y != goto_y: # pyright: ignore[reportUnboundVariable]
+        while (
+            current_x != goto_x or current_y != goto_y
+        ):  # pyright: ignore[reportUnboundVariable]
             if state is State.start_to_goal or state is State.goal_to_start:
                 maze_array, intersections = mapping(
                     maze_array, current_x, current_y, degmode, intersections
@@ -541,8 +555,8 @@ def main():
                         maze_array,
                         current_x,
                         current_y,
-                        goto_x, # pyright: ignore[reportUnboundVariable]
-                        goto_y, # pyright: ignore[reportUnboundVariable]
+                        goto_x,  # pyright: ignore[reportUnboundVariable]
+                        goto_y,  # pyright: ignore[reportUnboundVariable]
                         euclidian_distance_explore,
                         visited,
                     )
@@ -551,8 +565,8 @@ def main():
                         maze_array,
                         current_x,
                         current_y,
-                        goto_x, # pyright: ignore[reportUnboundVariable]
-                        goto_y, # pyright: ignore[reportUnboundVariable]
+                        goto_x,  # pyright: ignore[reportUnboundVariable]
+                        goto_y,  # pyright: ignore[reportUnboundVariable]
                         manhattan_distance_explore,
                         visited,
                     )
@@ -578,7 +592,7 @@ def main():
                     )
                     got_best_score = True
                     best_run_score = best_score
-            if path: # pyright: ignore[reportUnboundVariable]
+            if path:  # pyright: ignore[reportUnboundVariable]
                 if (current_x, current_y) in path:
                     path.remove((current_x, current_y))
                 for p in old_path:
@@ -588,7 +602,9 @@ def main():
                 for i, p in enumerate(path):
                     API.setColor(p[0], p[1], "B")
                     if state is State.final_run:
-                        API.setText(p[0], p[1], best_score_path[i]) # pyright: ignore[reportUnboundVariable]
+                        API.setText(
+                            p[0], p[1], best_score_path[i]
+                        )  # pyright: ignore[reportUnboundVariable]
                 current_x, current_y, degmode, total_score = move_to(
                     current_x, current_y, degmode, path, maze_array, viable, total_score
                 )
