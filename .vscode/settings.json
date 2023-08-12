@@ -1,5 +1,4 @@
 {
-    "python.languageServer": "Pylance",
     "python.analysis.typeCheckingMode": "basic",
     "python.analysis.diagnosticSeverityOverrides": {
         "reportUnusedImport": "information",
@@ -11,6 +10,4 @@
         "firmware/repos",
         "firmware/stubs"
     ],
-    "python.linting.enabled": false,
-    "python.linting.pylintEnabled": false,
 }

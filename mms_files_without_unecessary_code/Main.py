@@ -1,14 +1,21 @@
+# This is the modified version of the Drexels code for the micromouse https://github.com/james-ralph8555/DrexelMicromouse2020
+# here all the unecessary API calls has been removed, which some added optimzation and easy config practice, so that the maze settings can be entered accordingly without any hassle in the main code
+
+# here the the maze is always assumed to be square with the desitation at its center and start at any of the corners with three sides walls
+
 import heapq
 from collections import deque, namedtuple
 from math import sqrt
 import sys
 import API
 
-MAZE_WIDTH = API.mazeWidth()
-MAZE_HEIGHT = API.mazeHeight()
+MAZE_WIDTH: int = API.mazeWidth() # pyright: ignore[reportGeneralTypeIssues]
+MAZE_HEIGHT: int = API.mazeHeight() # pyright: ignore[reportGeneralTypeIssues]
 
 DirectionsClass = namedtuple("Directions", "UP RIGHT DOWN LEFT")
 Direction = DirectionsClass(0, 1, 2, 3)
+
+return_chuncked_coords = lambda shunk_size = 0, width = MAZE_WIDTH, height = MAZE_HEIGHT: int((int(width/2)+shunk_size + int(height/2)+shunk_size)/2)
 
 def manhattan_distance_explore(a, b, visited):
     """allows for path with visited nodes if neccessary, but strongly prefers unvisited nodes"""
@@ -53,7 +60,7 @@ def aStar(maze_array, current_x, current_y, goal_x, goal_y, h_func, visited):
             if 0 <= neighbor[0] < len(maze_array) and 0 <= neighbor[1] < len(
                 maze_array[1]
             ):
-                if i == 0 and j == 1 and bool(4 & maze_array[neighbor[0]][neighbor[1]]):
+                if i == 0 and j == 1 and bool(return_chuncked_coords(-4) & maze_array[neighbor[0]][neighbor[1]]):
                     continue
                 if (
                     i == 0
@@ -61,7 +68,7 @@ def aStar(maze_array, current_x, current_y, goal_x, goal_y, h_func, visited):
                     and bool(1 & maze_array[neighbor[0]][neighbor[1]])
                 ):
                     continue
-                if i == 1 and j == 0 and bool(8 & maze_array[neighbor[0]][neighbor[1]]):
+                if i == 1 and j == 0 and bool(return_chuncked_coords() & maze_array[neighbor[0]][neighbor[1]]):
                     continue
                 if (
                     i == -1
@@ -158,9 +165,9 @@ def mapping(
 
     if (
         maze_array[x][y] == 1
-        or maze_array[x][y] in (int(MAZE_HEIGHT / 8), int(MAZE_WIDTH / 8))
-        or maze_array[x][y] in (int(MAZE_HEIGHT / 4), int(MAZE_WIDTH / 4))
-        or maze_array[x][y] in (int(MAZE_HEIGHT / 2), int(MAZE_WIDTH / 2))
+        or maze_array[x][y] in (int(MAZE_HEIGHT / return_chuncked_coords()), int(MAZE_WIDTH / return_chuncked_coords())) #type: ignore
+        or maze_array[x][y] in (int(MAZE_HEIGHT / return_chuncked_coords(-4)), int(MAZE_WIDTH / return_chuncked_coords(-4))) #type: ignore
+        or maze_array[x][y] in (int(MAZE_HEIGHT / return_chuncked_coords(-6)), int(MAZE_WIDTH / return_chuncked_coords(-6))) #type: ignore
         or maze_array[x][y] == MAZE_HEIGHT
         or MAZE_WIDTH
     ):
@@ -205,7 +212,7 @@ def BFS(maze_array, start, goal, visited):
                 if (
                     i == 0
                     and j == 1
-                    and not bool(4 & maze_array[neighbor[0]][neighbor[1]])
+                    and not bool(return_chuncked_coords(-4) & maze_array[neighbor[0]][neighbor[1]])
                 ):
                     if visited[neighbor[0]][neighbor[1]]:
                         q.append(path + [neighbor])
@@ -219,7 +226,7 @@ def BFS(maze_array, start, goal, visited):
                 if (
                     i == 1
                     and j == 0
-                    and not bool(8 & maze_array[neighbor[0]][neighbor[1]])
+                    and not bool(return_chuncked_coords() & maze_array[neighbor[0]][neighbor[1]])
                 ):
                     if visited[neighbor[0]][neighbor[1]]:
                         q.append(path + [neighbor])
@@ -409,11 +416,10 @@ def update_viable(
                 viable[i][j] = True
     return viable
 
-
 def main():
-    maze_array = [[0 for j in range(MAZE_HEIGHT)] for i in range(MAZE_WIDTH)]
-    visited = [[False for j in range(MAZE_HEIGHT)] for i in range(MAZE_WIDTH)]
-    viable = [row[:] for row in visited]
+    maze_array = [[0 for j in range(MAZE_HEIGHT)] for i in range(MAZE_WIDTH)] #type: ignore
+    visited = [[False for j in range(MAZE_HEIGHT)] for i in range(MAZE_WIDTH)] #type: ignore
+    viable = [row[:] for row in visited] 
     intersections = []
     FINISH_X = 8
     FINISH_Y = 8
@@ -430,16 +436,14 @@ def main():
     total_score = 0
     encountered_wall = False
     while True:
-        if total_score > 2000:
-            exit()
-        if 7 <= current_x <= 8 and 7 <= current_y <= 8:
+        if return_chuncked_coords(-1) <= current_x <= return_chuncked_coords() and return_chuncked_coords(-1) <= current_y <= return_chuncked_coords():
             if state == State.start_to_goal:
                 state = State.goal_to_start
                 FINISH_X = current_x
                 FINISH_Y = current_y
             if state is State.final_run:
                 exit()
-        elif any(visited[7:9][7:9]) and state is State.start_to_goal:
+        elif any(visited[return_chuncked_coords(-1):return_chuncked_coords(1)][return_chuncked_coords(-1):return_chuncked_coords(1)]) and state is State.start_to_goal:
             state = State.goal_to_start
         if (
             state is State.goal_to_start
@@ -456,7 +460,7 @@ def main():
         elif state is State.goal_to_start:
             goto_x = START_X
             goto_y = START_Y
-        while current_x != goto_x or current_y != goto_y:
+        while current_x != goto_x or current_y != goto_y: # pyright: ignore[reportUnboundVariable]s
             if state is State.start_to_goal or state is State.goal_to_start:
                 maze_array, intersections = mapping(
                     maze_array, current_x, current_y, degmode, intersections
@@ -479,8 +483,8 @@ def main():
                         maze_array,
                         current_x,
                         current_y,
-                        goto_x,
-                        goto_y,
+                        goto_x, # pyright: ignore[reportUnboundVariable]
+                        goto_y, # pyright: ignore[reportUnboundVariable]
                         euclidian_distance_explore,
                         visited,
                     )
@@ -489,8 +493,8 @@ def main():
                         maze_array,
                         current_x,
                         current_y,
-                        goto_x,
-                        goto_y,
+                        goto_x, # pyright: ignore[reportUnboundVariable]
+                        goto_y, # pyright: ignore[reportUnboundVariable]
                         manhattan_distance_explore,
                         visited,
                     )
@@ -503,7 +507,7 @@ def main():
                     for c in [row.count(True) for row in visited]:
                         num_visited += c
                     got_best_score = True
-            if path:
+            if path: # pyright: ignore[reportUnboundVariable]
                 if (current_x, current_y) in path:
                     path.remove((current_x, current_y))
                 current_x, current_y, degmode, total_score = move_to(
@@ -511,7 +515,7 @@ def main():
                 )
                 visited[current_x][current_y] = True
                 viable = update_viable(visited)
-                if 7 <= current_x <= 8 and 7 <= current_y <= 8:
+                if return_chuncked_coords(-1) <= current_x <= return_chuncked_coords() and return_chuncked_coords(-1) <= current_y <= return_chuncked_coords():
                     break
 
 

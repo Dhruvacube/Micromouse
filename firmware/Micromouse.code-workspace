@@ -1,0 +1,31 @@
+{
+	"folders": [
+		{
+			"path": ".."
+		},
+		{
+			"name": "firmware",
+			"path": "."
+		}
+	],
+	"settings": {
+		"[python]": {
+			"editor.defaultFormatter": "ms-python.black-formatter"
+		},
+		"python.analysis.downloadStubs": false,
+		"python.analysis.extraPaths": [
+			"D:\\projects\\Robotics\\Micromouse\\firmware\\stubs"
+		],
+		"python.analysis.typeCheckingMode": "basic",
+		"python.analysis.gotoDefinitionInStringLiteral": false,
+		"python.analysis.typeshedPaths": [
+			"D:\\projects\\Robotics\\Micromouse\\firmware\\.mypy_cache"
+		],
+		"python.analysis.disableSemanticOnNoPython": true,
+		"python.analysis.autoFormatStrings": true,
+		"python.analysis.autoImportCompletions": true,
+		"python.analysis.completeFunctionParens": true,
+		"python.analysis.addImport.exactMatchOnly": true,
+		"python.analysis.stubPath": "D:\\projects\\Robotics\\Micromouse\\firmware\\stubs"
+	}
+}
