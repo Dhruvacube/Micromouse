@@ -345,7 +345,6 @@ def move_to(current_x, current_y, degmode, path, maze_array, visited, score):
 
 
 def path_score(path):
-
     cur_x = path[0][0]
     last_x = path[0][0]
     last_x2 = -1
